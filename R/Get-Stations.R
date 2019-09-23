@@ -5,7 +5,7 @@
 #' 
 #' @export
 
-get_stations = function() {
+get_stations = function(wmo = TRUE) {
   col_names = c("ID","Lat","Long","Elev","State","Name","GSNFlag","HCNFlag","WMOID")
   url = "ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt"
   response = curl_fetch_memory(url)
@@ -19,5 +19,6 @@ get_stations = function() {
     mutate(Elev = na_if(Elev,-999.9)*3.281,
            GSNFlag = case_when(GSNFlag == "GSN" ~ TRUE,
                                is.na(GSNFlag) ~ FALSE))
+  if(wmo) data = filter(data,! is.na(WMOID))
   return(data)
 }
