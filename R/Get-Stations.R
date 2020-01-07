@@ -1,5 +1,7 @@
 #' Get List of Stations
 #' 
+#' @param wmo Limit to WMO stations
+#' 
 #' @import readr dplyr stringr
 #' @importFrom curl curl_fetch_memory
 #' 

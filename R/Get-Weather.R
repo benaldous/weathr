@@ -19,21 +19,17 @@ get_weather = function(stationid) {
     read_fwf(col_positions = fwf_widths(c(11,4,2,4,rep(c(5,1,1,1),31)),col_names),
              col_types = cols(.default = "c")) %>%
     filter(Element %in% c("TMAX","TMIN","PRCP","SNOW")) %>%
-    gather(Key,Value,-ID,-Year,-Month,-Element) %>%
-    mutate(Key = str_replace(Key,"(?<=[a-z])(?=[0-9])"," ")) %>%
-    separate(Key,c("Key","Day"),sep = " ") %>%
-    spread(Key,Value) %>%
+    pivot_longer(c(-ID,-Year,-Month,-Element)) %>%
+    separate(name,c("Key","Day"),sep = "(?<=[a-z])(?=[0-9])") %>%
+    pivot_wider(names_from = Key,values_from = value) %>%
     drop_na(SFlag) %>%
-    transmute(StationID = ID,
-              Date = ymd(str_c(Year,Month,Day,sep = "-")),
-              Element,
-              Value = as.numeric(Value)) %>%
-    spread(Element,Value) %>%
-    mutate(TMAX = round((TMAX/10)*(9/5) + 32),
-           TMIN = round((TMIN/10)*(9/5) + 32),
-           PRCP = (PRCP/100)/2.54,
-           SNOW = (SNOW/10)/2.54) %>%
-    mutate_at(vars(TMAX,TMIN),as.integer) %>%
-    select(StationID,Date,TMAX,TMIN,PRCP,SNOW)
+    mutate_at(vars(Value),as.integer) %>%
+    mutate(Value = case_when(Element %in% c("TMAX","TMIN") ~ round((Value/10)*(9/5) + 32),
+                             Element == "PRCP" ~ (Value/100)/2.54,
+                             Element == "SNOW" ~ (Value/10)/2.54)) %>%
+    mutate(Date = str_c(Year,Month,Day,sep = "-") %>% ymd()) %>%
+    select(Date,Element,Value) %>%
+    pivot_wider(names_from = Element,values_from = Value) %>%
+    mutate_at(vars(matches("TMAX"),matches("TMIN")),as.integer)
   return(data)
 }

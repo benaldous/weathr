@@ -6,6 +6,9 @@
 \usage{
 get_stations(wmo = TRUE)
 }
+\arguments{
+\item{wmo}{Limit to WMO stations}
+}
 \description{
 Get List of Stations
 }
