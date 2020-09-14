@@ -8,10 +8,10 @@
 #' 
 #' @export
 
-get_weather = function(stationid) {
+get_daily = function(stationid) {
   col_names = c("ID","Year","Month","Element",str_c(c("Value","MFlag","QFlag","SFlag"),rep(1:31,each = 4)))
   url = str_glue("ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/all/{stationid}.dly")
-  response = curl::curl_fetch_memory(url)
+  response = curl_fetch_memory(url)
   status = response[["status_code"]]
   if(status != 226) stop(status)
   content = response[["content"]]
@@ -32,4 +32,29 @@ get_weather = function(stationid) {
     pivot_wider(names_from = Element,values_from = Value) %>%
     mutate_at(vars(matches("TMAX"),matches("TMIN")),as.integer)
   return(data)
+}
+
+#' @describeIn get_daily
+#' 
+#' @param stationid USAF-WBAN station ID
+#' @param year Year
+#' 
+#' @importFrom curl curl_fetch_disk
+#' @importFrom lubridate ymd_hm
+#' 
+#' @export
+
+get_hourly = function(stationid,year) {
+  url = str_glue("ftp://ftp.ncei.noaa.gov/pub/data/noaa/{year}/{stationid}-{year}.gz")
+  file = curl_fetch_disk(url,tempfile())$content
+  hourly = gzfile(file) %>%
+    read.fwf(c(15,12,60,5,1,5,1)) %>%
+    as_tibble() %>%
+    filter(V4 != 9999,
+           V6 != 9999) %>%
+    transmute(Timestamp = ymd_hm(V2),
+              Temperature = V4/10*9/5 + 32,
+              Dewpoint = V6/10*9/5 + 32)
+  unlink(file)
+  return(hourly)
 }
